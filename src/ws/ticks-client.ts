@@ -27,7 +27,15 @@ export class ExnessTicksClient extends ExnessWsBase {
     if (process.env.EXNESS_WS_DEBUG === '1') {
       console.log('[exness-sdk][ticks] subscribe', JSON.stringify({ requestId, instruments }));
     }
-    this.send({ id: requestId, subscribe: { event: 'ticks', instruments } });
+    this.send({
+      type: 'subscribe',
+      streams: [
+        {
+          event: 'ticks',
+          instruments,
+        },
+      ],
+    });
   }
 
   protected onConnected(): void {
@@ -36,8 +44,13 @@ export class ExnessTicksClient extends ExnessWsBase {
         console.log('[exness-sdk][ticks] resubscribe', JSON.stringify({ instruments: [...this.subscribedInstruments] }));
       }
       this.send({
-        id: crypto.randomUUID(),
-        subscribe: { event: 'ticks', instruments: [...this.subscribedInstruments] },
+        type: 'subscribe',
+        streams: [
+          {
+            event: 'ticks',
+            instruments: [...this.subscribedInstruments],
+          },
+        ],
       });
     }
   }
