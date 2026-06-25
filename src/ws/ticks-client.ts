@@ -24,11 +24,17 @@ export class ExnessTicksClient extends ExnessWsBase {
 
   subscribe(requestId: string, instruments: InstrumentName[]): void {
     for (const i of instruments) this.subscribedInstruments.add(i);
+    if (process.env.EXNESS_WS_DEBUG === '1') {
+      console.log('[exness-sdk][ticks] subscribe', JSON.stringify({ requestId, instruments }));
+    }
     this.send({ id: requestId, subscribe: { event: 'ticks', instruments } });
   }
 
   protected onConnected(): void {
     if (this.subscribedInstruments.size > 0) {
+      if (process.env.EXNESS_WS_DEBUG === '1') {
+        console.log('[exness-sdk][ticks] resubscribe', JSON.stringify({ instruments: [...this.subscribedInstruments] }));
+      }
       this.send({
         id: crypto.randomUUID(),
         subscribe: { event: 'ticks', instruments: [...this.subscribedInstruments] },
@@ -37,6 +43,9 @@ export class ExnessTicksClient extends ExnessWsBase {
   }
 
   protected onMessage(raw: string): void {
+    if (process.env.EXNESS_WS_DEBUG === '1') {
+      console.log('[exness-sdk][ticks] raw', raw);
+    }
     let msg: WSTick | WsErrorResponse;
     try {
       msg = JSON.parse(raw) as WSTick | WsErrorResponse;

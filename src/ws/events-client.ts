@@ -94,12 +94,18 @@ export class ExnessEventsClient extends ExnessWsBase {
 
   protected onConnected(): void {
     // Replay all active subscriptions after reconnect
+    if (process.env.EXNESS_WS_DEBUG === '1') {
+      console.log('[exness-sdk][events] resubscribe', JSON.stringify({ subscriptions: [...this.activeSubscriptions.keys()] }));
+    }
     for (const cmd of this.activeSubscriptions.values()) {
       this.send(cmd);
     }
   }
 
   protected onMessage(raw: string): void {
+    if (process.env.EXNESS_WS_DEBUG === '1') {
+      console.log('[exness-sdk][events] raw', raw);
+    }
     let msg: WSTradingEvent | WsErrorResponse;
     try {
       msg = JSON.parse(raw) as WSTradingEvent | WsErrorResponse;

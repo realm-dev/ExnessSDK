@@ -51,17 +51,47 @@ export abstract class ExnessWsBase {
       headers['Authorization'] = `Bearer ${this.auth.token}`;
     }
 
+    if (process.env.EXNESS_WS_DEBUG === '1') {
+      console.log('[exness-sdk][ws] connecting', JSON.stringify({
+        wsUrl,
+        wsPath: this.wsPath,
+        authType: this.auth.type,
+        headers,
+      }));
+    }
+
     this.ws = new WebSocket(wsUrl, { headers });
 
     this.ws.on('open', () => {
+      if (process.env.EXNESS_WS_DEBUG === '1') {
+        console.log('[exness-sdk][ws] open', JSON.stringify({ wsUrl, wsPath: this.wsPath }));
+      }
       this.onConnected();
     });
 
     this.ws.on('message', (data: WebSocket.RawData) => {
-      this.onMessage(data.toString());
+      const raw = data.toString();
+      if (process.env.EXNESS_WS_DEBUG === '1') {
+        console.log('[exness-sdk][ws] message', raw);
+      }
+      this.onMessage(raw);
     });
 
-    this.ws.on('close', () => {
+    this.ws.on('error', (err) => {
+      if (process.env.EXNESS_WS_DEBUG === '1') {
+        console.log('[exness-sdk][ws] error', err);
+      }
+    });
+
+    this.ws.on('close', (code, reason) => {
+      if (process.env.EXNESS_WS_DEBUG === '1') {
+        console.log('[exness-sdk][ws] close', JSON.stringify({
+          code,
+          reason: reason.toString(),
+          wsUrl,
+          wsPath: this.wsPath,
+        }));
+      }
       this.ws = null;
       if (this.shouldReconnect) {
         this.reconnectTimer = setTimeout(() => {

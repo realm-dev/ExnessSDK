@@ -1,12 +1,18 @@
 import type { ExnessHttpClient } from '../http/client.js';
 import type { InstrumentName, UInt64String } from '../types/common.js';
 import type {
-  AccountDetailsResponse, InstrumentConditionResponse,
-  InstrumentNameListResponse, RateLimitsResponse,
+  AccountDetailsResponse,
+  InstrumentConditionResponse,
+  InstrumentNameListResponse,
+  RateLimitsResponse,
 } from '../types/responses.js';
 
 export class ConfigurationApi {
   constructor(private readonly http: ExnessHttpClient) {}
+
+  getTradingAccessPoint(accountId: UInt64String): Promise<{ access_point: string; account_id: UInt64String }> {
+    return this.http.request('GET', '/v1/trading/access-point', { query: { account_id: accountId } });
+  }
 
   getAccountDetails(accountId: UInt64String): Promise<AccountDetailsResponse> {
     return this.http.request('GET',
