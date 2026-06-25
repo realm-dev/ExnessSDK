@@ -79,6 +79,22 @@ export abstract class ExnessWsBase {
     await new Promise<void>((resolve, reject) => {
       let settled = false;
 
+      this.ws!.once('unexpected-response', (_req, res) => {
+        if (process.env.EXNESS_WS_DEBUG === '1') {
+          const chunks: Buffer[] = [];
+          res.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+          res.on('end', () => {
+            const body = Buffer.concat(chunks).toString('utf8');
+            console.log('[exness-sdk][ws] unexpected-response', JSON.stringify({
+              statusCode: res.statusCode,
+              statusMessage: res.statusMessage,
+              headers: res.headers,
+              body,
+            }));
+          });
+        }
+      });
+
       this.ws!.once('open', () => {
         if (process.env.EXNESS_WS_DEBUG === '1') {
           console.log('[exness-sdk][ws] open', JSON.stringify({ wsUrl, wsPath: this.wsPath }));
