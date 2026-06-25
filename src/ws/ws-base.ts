@@ -47,6 +47,7 @@ export abstract class ExnessWsBase {
     let headers: Record<string, string> = {};
     if (this.auth.type === 'signed') {
       headers = await buildSignedHeaders(this.auth, 'GET', this.wsPath, '', '');
+      headers['X-Request-ID'] = crypto.randomUUID();
     } else {
       headers['Authorization'] = `Bearer ${this.auth.token}`;
     }
@@ -62,11 +63,29 @@ export abstract class ExnessWsBase {
 
     this.ws = new WebSocket(wsUrl, { headers });
 
-    this.ws.on('open', () => {
-      if (process.env.EXNESS_WS_DEBUG === '1') {
-        console.log('[exness-sdk][ws] open', JSON.stringify({ wsUrl, wsPath: this.wsPath }));
-      }
-      this.onConnected();
+    await new Promise<void>((resolve, reject) => {
+      let settled = false;
+
+      this.ws!.once('open', () => {
+        if (process.env.EXNESS_WS_DEBUG === '1') {
+          console.log('[exness-sdk][ws] open', JSON.stringify({ wsUrl, wsPath: this.wsPath }));
+        }
+        this.onConnected();
+        if (!settled) {
+          settled = true;
+          resolve();
+        }
+      });
+
+      this.ws!.once('error', (err) => {
+        if (process.env.EXNESS_WS_DEBUG === '1') {
+          console.log('[exness-sdk][ws] error', err);
+        }
+        if (!settled) {
+          settled = true;
+          reject(err);
+        }
+      });
     });
 
     this.ws.on('message', (data: WebSocket.RawData) => {
@@ -100,8 +119,5 @@ export abstract class ExnessWsBase {
       }
     });
 
-    this.ws.on('error', (_err: Error) => {
-      // error is followed by close event which handles reconnect
-    });
   }
 }
