@@ -47,7 +47,7 @@ export abstract class ExnessWsBase {
 
     let headers: Record<string, string> = {};
     if (this.auth.type === 'signed') {
-      headers = await buildSignedHeaders(this.auth, 'GET', this.wsPath, '', requestId);
+      headers = await buildSignedHeaders(this.auth, 'GET', this.wsPath, '', '');
       headers['X-Request-ID'] = requestId;
     } else {
       headers['Authorization'] = `Bearer ${this.auth.token}`;

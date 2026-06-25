@@ -25,11 +25,11 @@ export class ExnessClient {
   }
 
   createEventsClient(accountId: UInt64String): ExnessEventsClient {
-    return new ExnessEventsClient(this.config.baseUrl, accountId, this.config.auth);
+    return new ExnessEventsClient(this.config.wsBaseUrl ?? this.config.baseUrl, accountId, this.config.auth);
   }
 
   createTicksClient(accountId: UInt64String): ExnessTicksClient {
-    return new ExnessTicksClient(this.config.baseUrl, accountId, this.config.auth);
+    return new ExnessTicksClient(this.config.wsBaseUrl ?? this.config.baseUrl, accountId, this.config.auth);
   }
 }
 

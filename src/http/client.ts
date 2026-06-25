@@ -3,6 +3,7 @@ import { ExnessApiError, type ErrorResponse } from '../types/errors.js';
 
 export interface ExnessClientConfig {
   baseUrl: string;
+  wsBaseUrl?: string;
   auth:    AuthConfig;
 }
 
