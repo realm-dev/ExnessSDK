@@ -62,12 +62,11 @@ export abstract class ExnessWsBase {
       }));
     }
 
-    this.ws = new WebSocket(wsUrl, {
+    this.ws = new WebSocket(wsUrl, 'exness-ws-protocol', {
       headers,
       handshakeTimeout: 10000,
       perMessageDeflate: false,
       rejectUnauthorized: false,
-      protocol: 'exness-ws-protocol',
     });
 
     if (process.env.EXNESS_WS_DEBUG === '1') {
