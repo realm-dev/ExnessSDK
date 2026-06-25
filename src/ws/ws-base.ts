@@ -62,7 +62,11 @@ export abstract class ExnessWsBase {
       }));
     }
 
-    this.ws = new WebSocket(wsUrl, { headers });
+    this.ws = new WebSocket(wsUrl, {
+      headers,
+      handshakeTimeout: 10000,
+      perMessageDeflate: false,
+    });
 
     await new Promise<void>((resolve, reject) => {
       let settled = false;
