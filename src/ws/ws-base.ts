@@ -43,11 +43,12 @@ export abstract class ExnessWsBase {
   private async openConnection(): Promise<void> {
     // Convert http(s) base URL to ws(s)
     const wsUrl = this.baseUrl.replace(/^http/, 'ws') + this.wsPath;
+    const requestId = crypto.randomUUID();
 
     let headers: Record<string, string> = {};
     if (this.auth.type === 'signed') {
-      headers = await buildSignedHeaders(this.auth, 'GET', this.wsPath, '', '');
-      headers['X-Request-ID'] = crypto.randomUUID();
+      headers = await buildSignedHeaders(this.auth, 'GET', this.wsPath, '', requestId);
+      headers['X-Request-ID'] = requestId;
     } else {
       headers['Authorization'] = `Bearer ${this.auth.token}`;
     }
