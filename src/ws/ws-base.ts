@@ -67,6 +67,7 @@ export abstract class ExnessWsBase {
       handshakeTimeout: 10000,
       perMessageDeflate: false,
       rejectUnauthorized: false,
+      protocol: 'exness-ws-protocol',
     });
 
     if (process.env.EXNESS_WS_DEBUG === '1') {
