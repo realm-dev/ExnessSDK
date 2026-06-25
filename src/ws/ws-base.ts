@@ -33,7 +33,11 @@ export abstract class ExnessWsBase {
 
   protected send(payload: object): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(payload));
+      const raw = JSON.stringify(payload);
+      if (process.env.EXNESS_WS_DEBUG === '1') {
+        console.log('[exness-sdk][ws] send', raw);
+      }
+      this.ws.send(raw);
     }
   }
 
