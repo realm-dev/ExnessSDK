@@ -68,6 +68,14 @@ export abstract class ExnessWsBase {
       perMessageDeflate: false,
     });
 
+    if (process.env.EXNESS_WS_DEBUG === '1') {
+      const req = (this.ws as WebSocket & { _req?: { getHeaders?: () => Record<string, unknown> } })._req;
+      const actualHeaders = req?.getHeaders?.();
+      if (actualHeaders) {
+        console.log('[exness-sdk][ws] actual-request-headers', JSON.stringify(actualHeaders));
+      }
+    }
+
     await new Promise<void>((resolve, reject) => {
       let settled = false;
 
