@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { buildSignedHeaders, type AuthConfig } from '../auth/signer.js';
 import { ExnessApiError, type ErrorResponse } from '../types/errors.js';
 
@@ -35,7 +36,7 @@ export class ExnessHttpClient {
     const bodyStr       = options?.body !== undefined ? JSON.stringify(options.body) : '';
     const qs            = buildQueryString(options?.query);
     const pathWithQuery = path + qs;
-    const idempotencyKey = options?.idempotencyKey ?? '';
+    const idempotencyKey = options?.idempotencyKey ?? randomUUID();
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
