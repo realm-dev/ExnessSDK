@@ -41,6 +41,11 @@ export const EMPTY_BODY_HASH = sha256Base64Url('');
 
 export type SignedHeaders = Record<string, string>;
 
+// Server tolerance is asymmetric: even a small future skew is rejected.
+// Bias the client timestamp slightly into the past to avoid false negatives
+// when local clock runs a few hundred milliseconds ahead.
+const TIMESTAMP_SAFETY_MARGIN_MS = 1000;
+
 function fromBase64Url(text: string): string {
   const padded = text.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(text.length / 4) * 4, '=');
   return Buffer.from(padded, 'base64').toString('utf8');
@@ -53,7 +58,7 @@ export async function buildSignedHeaders(
   body: string,             // JSON-serialized body or '' for GET/no-body
   idempotencyKey: string    // '' for GET requests
 ): Promise<SignedHeaders> {
-  const timestamp = Date.now();
+  const timestamp = Date.now() - TIMESTAMP_SAFETY_MARGIN_MS;
   const bodyHash  = body ? sha256Base64Url(body) : EMPTY_BODY_HASH;
 
   const payload = {

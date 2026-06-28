@@ -39,6 +39,11 @@ const instruments = await tradingClient.configuration.getAvailableInstrumentList
 console.log(instruments);
 ```
 
+Signed auth note:
+- The server timestamp tolerance is effectively asymmetric: requests are accepted only when `0 <= server_now_ms - signed_timestamp_ms <= 3000`.
+- In practice, a client clock that is even slightly ahead of the server can trigger `AUTH_INVALID_API_KEY` with reason `timestamp out of tolerance`.
+- If you see intermittent auth failures with otherwise valid signatures, bias the signed timestamp slightly into the past, for example `Date.now() - 1000`.
+
 ### WebSocket client
 
 ```ts
