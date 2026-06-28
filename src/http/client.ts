@@ -58,6 +58,19 @@ export class ExnessHttpClient {
     }
 
     const url = this.config.baseUrl + pathWithQuery;
+    if (process.env.EXNESS_AUTH_DEBUG === '1' && this.config.auth.type === 'signed') {
+      console.log('[exness-sdk][http] request', JSON.stringify({
+        method,
+        url,
+        headers: {
+          'EXN-API-KEY': headers['EXN-API-KEY'],
+          'EXN-IDEMPOTENCY-KEY': headers['EXN-IDEMPOTENCY-KEY'],
+          'EXN-TIMESTAMP': headers['EXN-TIMESTAMP'],
+          'EXN-SIGN-VERSION': headers['EXN-SIGN-VERSION'],
+        },
+        body: bodyStr || null,
+      }));
+    }
     const response = await fetch(url, {
       method,
       headers,
