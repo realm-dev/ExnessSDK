@@ -7,6 +7,7 @@ export abstract class ExnessWsBase {
   protected ws: WebSocket | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private shouldReconnect = false;
+  private hasConnectedOnce = false;
 
   constructor(
     protected readonly baseUrl: string,
@@ -44,10 +45,15 @@ export abstract class ExnessWsBase {
   protected abstract onMessage(raw: string): void;
   protected abstract onConnected(): void;
 
+  private getLogPrefix(): string {
+    return this.wsPath.includes('/ws/ticks') ? 'quote-ws' : 'events-ws';
+  }
+
   private async openConnection(): Promise<void> {
     // Convert http(s) base URL to ws(s)
     const wsUrl = this.baseUrl.replace(/^http/, 'ws') + this.wsPath;
     const requestId = crypto.randomUUID();
+    const logPrefix = this.getLogPrefix();
 
     let headers: Record<string, string> = {};
     if (this.auth.type === 'signed') {
@@ -104,6 +110,12 @@ export abstract class ExnessWsBase {
         if (process.env.EXNESS_WS_DEBUG === '1') {
           console.log('[exness-sdk][ws] open', JSON.stringify({ wsUrl, wsPath: this.wsPath }));
         }
+        if (this.hasConnectedOnce) {
+          console.log(`[${logPrefix}-reconnected]`, JSON.stringify({
+            wsPath: this.wsPath,
+          }));
+        }
+        this.hasConnectedOnce = true;
         this.onConnected();
         if (!settled) {
           settled = true;
@@ -112,6 +124,7 @@ export abstract class ExnessWsBase {
       });
 
       this.ws!.once('error', (err) => {
+        console.error(`[${logPrefix}-error]`, err instanceof Error ? err.message : String(err));
         if (process.env.EXNESS_WS_DEBUG === '1') {
           console.log('[exness-sdk][ws] error', err);
         }
@@ -131,12 +144,18 @@ export abstract class ExnessWsBase {
     });
 
     this.ws.on('error', (err) => {
+      console.error(`[${logPrefix}-error]`, err instanceof Error ? err.message : String(err));
       if (process.env.EXNESS_WS_DEBUG === '1') {
         console.log('[exness-sdk][ws] error', err);
       }
     });
 
     this.ws.on('close', (code, reason) => {
+      console.warn(`[${logPrefix}-closed]`, JSON.stringify({
+        code,
+        reason: reason.toString(),
+        wsPath: this.wsPath,
+      }));
       if (process.env.EXNESS_WS_DEBUG === '1') {
         console.log('[exness-sdk][ws] close', JSON.stringify({
           code,

@@ -44,6 +44,13 @@ Signed auth note:
 - In practice, a client clock that is even slightly ahead of the server can trigger `AUTH_INVALID_API_KEY` with reason `timestamp out of tolerance`.
 - If you see intermittent auth failures with otherwise valid signatures, bias the signed timestamp slightly into the past, for example `Date.now() - 1000`.
 
+Trading price formatting note:
+- Before sending `price`, `stop_loss_price`, or `take_profit_price` in trading REST requests, load instrument conditions with `configuration.getInstrumentCondition(accountId, instrument)`.
+- The server validates these fields against the instrument `point_digits` precision.
+- Sending raw JavaScript floating-point values such as `60041.770000000004` can fail with `REQUEST_INVALID_PRICE`.
+- Always normalize trade prices to the instrument precision first, for example with `value.toFixed(pointDigits)`.
+- This is especially important when stop-loss or take-profit prices are derived from spreads or other arithmetic on tick values.
+
 ### WebSocket client
 
 ```ts
