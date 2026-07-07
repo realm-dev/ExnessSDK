@@ -113,8 +113,16 @@ export class ExnessEventsClient extends ExnessWsBase {
       return;
     }
 
-    // WS error response has 'code' field, not 'event_type'
+    // WS control acks also come through the `code` field.
+    // Keep code 200 as a non-error acknowledgment, consistent with the ticks client.
     if ('code' in msg) {
+      if (msg.code === 200) {
+        if (process.env.EXNESS_WS_DEBUG === '1') {
+          console.log('[exness-sdk][events] ack', JSON.stringify(msg));
+        }
+        return;
+      }
+
       for (const cb of this.handlers.error) cb(msg as WsErrorResponse);
       return;
     }
