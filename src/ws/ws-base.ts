@@ -8,6 +8,7 @@ export abstract class ExnessWsBase {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private shouldReconnect = false;
   private hasConnectedOnce = false;
+  private reconnectAttempt = 0;
 
   constructor(
     protected readonly baseUrl: string,
@@ -47,6 +48,39 @@ export abstract class ExnessWsBase {
 
   private getLogPrefix(): string {
     return this.wsPath.includes('/ws/ticks') ? 'quote-ws' : 'events-ws';
+  }
+
+  private scheduleReconnect(reason: string): void {
+    if (!this.shouldReconnect) {
+      return;
+    }
+
+    if (this.reconnectTimer !== null) {
+      clearTimeout(this.reconnectTimer);
+    }
+
+    const logPrefix = this.getLogPrefix();
+    const nextAttempt = this.reconnectAttempt + 1;
+    console.warn(`[${logPrefix}-reconnect-scheduled]`, JSON.stringify({
+      wsPath: this.wsPath,
+      reason,
+      attempt: nextAttempt,
+      delayMs: RECONNECT_DELAY_MS,
+    }));
+
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.reconnectAttempt = nextAttempt;
+
+      void this.openConnection().catch((err) => {
+        console.error(`[${logPrefix}-reconnect-failed]`, JSON.stringify({
+          wsPath: this.wsPath,
+          attempt: this.reconnectAttempt,
+          error: err instanceof Error ? err.message : String(err),
+        }));
+        this.scheduleReconnect('open-failed');
+      });
+    }, RECONNECT_DELAY_MS);
   }
 
   private async openConnection(): Promise<void> {
@@ -110,12 +144,18 @@ export abstract class ExnessWsBase {
         if (process.env.EXNESS_WS_DEBUG === '1') {
           console.log('[exness-sdk][ws] open', JSON.stringify({ wsUrl, wsPath: this.wsPath }));
         }
+        if (this.reconnectTimer !== null) {
+          clearTimeout(this.reconnectTimer);
+          this.reconnectTimer = null;
+        }
         if (this.hasConnectedOnce) {
           console.log(`[${logPrefix}-reconnected]`, JSON.stringify({
             wsPath: this.wsPath,
+            attempt: this.reconnectAttempt,
           }));
         }
         this.hasConnectedOnce = true;
+        this.reconnectAttempt = 0;
         this.onConnected();
         if (!settled) {
           settled = true;
@@ -165,11 +205,7 @@ export abstract class ExnessWsBase {
         }));
       }
       this.ws = null;
-      if (this.shouldReconnect) {
-        this.reconnectTimer = setTimeout(() => {
-          void this.openConnection();
-        }, RECONNECT_DELAY_MS);
-      }
+      this.scheduleReconnect(`close-${code}`);
     });
 
   }

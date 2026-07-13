@@ -57,14 +57,15 @@ export class ExnessTicksClient extends ExnessWsBase {
     }
 
     if ('code' in msg) {
-      if (msg.code === 200) {
+      const normalizedCode = Number(msg.code);
+      if (normalizedCode === 200) {
         if (process.env.EXNESS_WS_DEBUG === '1') {
           console.log('[exness-sdk][ticks] ack', JSON.stringify(msg));
         }
         return;
       }
 
-      if (msg.code === 3000 && msg.error_message === 'REQUEST_INVALID' && this.subscriptionMode === 'legacy') {
+      if (normalizedCode === 3000 && msg.error_message === 'REQUEST_INVALID' && this.subscriptionMode === 'legacy') {
         this.subscriptionMode = 'streams';
         if (process.env.EXNESS_WS_DEBUG === '1') {
           console.log('[exness-sdk][ticks] switching-subscribe-mode', JSON.stringify({
