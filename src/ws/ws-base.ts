@@ -45,6 +45,7 @@ export abstract class ExnessWsBase {
 
   protected abstract onMessage(raw: string): void;
   protected abstract onConnected(): void;
+  protected onReconnected(): void {}
 
   private getLogPrefix(): string {
     return this.wsPath.includes('/ws/ticks') ? 'quote-ws' : 'events-ws';
@@ -153,6 +154,7 @@ export abstract class ExnessWsBase {
             wsPath: this.wsPath,
             attempt: this.reconnectAttempt,
           }));
+          this.onReconnected();
         }
         this.hasConnectedOnce = true;
         this.reconnectAttempt = 0;

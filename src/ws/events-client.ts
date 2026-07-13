@@ -14,6 +14,7 @@ type EventHandlers = {
   instrument_event:       Array<(e: WSInstrumentEvent) => void>;
   hmr_snapshot:           Array<(e: WSHmrSnapshotEvent) => void>;
   hmr_update:             Array<(e: WSHmrUpdateEvent) => void>;
+  reconnected:            Array<() => void>;
   error:                  Array<(e: WsErrorResponse) => void>;
 };
 
@@ -31,6 +32,7 @@ export class ExnessEventsClient extends ExnessWsBase {
     instrument_event:       [],
     hmr_snapshot:           [],
     hmr_update:             [],
+    reconnected:            [],
     error:                  [],
   };
 
@@ -47,6 +49,7 @@ export class ExnessEventsClient extends ExnessWsBase {
   on(event: 'instrument_event',       cb: (e: WSInstrumentEvent) => void): this;
   on(event: 'hmr_snapshot',           cb: (e: WSHmrSnapshotEvent) => void): this;
   on(event: 'hmr_update',             cb: (e: WSHmrUpdateEvent) => void): this;
+  on(event: 'reconnected',            cb: () => void): this;
   on(event: 'error',                  cb: (e: WsErrorResponse) => void): this;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   on(event: keyof EventHandlers, cb: (e: any) => void): this {
@@ -99,6 +102,12 @@ export class ExnessEventsClient extends ExnessWsBase {
     }
     for (const cmd of this.activeSubscriptions.values()) {
       this.send(cmd);
+    }
+  }
+
+  protected override onReconnected(): void {
+    for (const cb of this.handlers.reconnected) {
+      cb();
     }
   }
 
