@@ -56,9 +56,12 @@ export async function buildSignedHeaders(
   method: string,           // uppercase: 'GET', 'POST', etc.
   pathWithQuery: string,    // path + query string exactly as transmitted
   body: string,             // JSON-serialized body or '' for GET/no-body
-  idempotencyKey: string    // '' for GET requests
+  idempotencyKey: string,   // '' for GET requests
+  options?: {
+    clockOffsetMs?: number;
+  }
 ): Promise<SignedHeaders> {
-  const timestamp = Date.now() - TIMESTAMP_SAFETY_MARGIN_MS;
+  const timestamp = Date.now() + (options?.clockOffsetMs ?? 0) - TIMESTAMP_SAFETY_MARGIN_MS;
   const bodyHash  = body ? sha256Base64Url(body) : EMPTY_BODY_HASH;
 
   const payload = {

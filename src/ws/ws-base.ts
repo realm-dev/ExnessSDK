@@ -13,7 +13,8 @@ export abstract class ExnessWsBase {
   constructor(
     protected readonly baseUrl: string,
     protected readonly wsPath: string,
-    protected readonly auth: AuthConfig
+    protected readonly auth: AuthConfig,
+    protected readonly getClockOffsetMs: () => number = () => 0
   ) {}
 
   async connect(): Promise<void> {
@@ -92,7 +93,14 @@ export abstract class ExnessWsBase {
 
     let headers: Record<string, string> = {};
     if (this.auth.type === 'signed') {
-      headers = await buildSignedHeaders(this.auth, 'GET', this.wsPath, '', '');
+      headers = await buildSignedHeaders(
+        this.auth,
+        'GET',
+        this.wsPath,
+        '',
+        '',
+        { clockOffsetMs: this.getClockOffsetMs() }
+      );
       headers['X-Request-ID'] = requestId;
     } else {
       headers['Authorization'] = `Bearer ${this.auth.token}`;

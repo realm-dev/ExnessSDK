@@ -42,7 +42,9 @@ console.log(instruments);
 Signed auth note:
 - The server timestamp tolerance is effectively asymmetric: requests are accepted only when `0 <= server_now_ms - signed_timestamp_ms <= 3000`.
 - In practice, a client clock that is even slightly ahead of the server can trigger `AUTH_INVALID_API_KEY` with reason `timestamp out of tolerance`.
-- If you see intermittent auth failures with otherwise valid signatures, bias the signed timestamp slightly into the past, for example `Date.now() - 1000`.
+- The SDK now keeps a shared `clockOffsetMs` in sync from HTTP `Date` response headers and reuses it for both REST and WS handshakes.
+- If you still need a manual fallback, you can pass `clockOffsetMs` in the client config to bias all signed requests and WS handshakes.
+- The SDK still applies a small safety margin into the past on top of that offset.
 
 Trading price formatting note:
 - Before sending `price`, `stop_loss_price`, or `take_profit_price` in trading REST requests, load instrument conditions with `configuration.getInstrumentCondition(accountId, instrument)`.

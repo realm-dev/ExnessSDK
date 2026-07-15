@@ -38,8 +38,13 @@ export class ExnessEventsClient extends ExnessWsBase {
 
   private readonly activeSubscriptions = new Map<string, object>();
 
-  constructor(baseUrl: string, accountId: UInt64String, auth: AuthConfig) {
-    super(baseUrl, `/v1/server-events/accounts/${accountId}/ws/events`, auth);
+  constructor(
+    baseUrl: string,
+    accountId: UInt64String,
+    auth: AuthConfig,
+    getClockOffsetMs: () => number = () => 0
+  ) {
+    super(baseUrl, `/v1/server-events/accounts/${accountId}/ws/events`, auth, getClockOffsetMs);
   }
 
   // Typed on() overloads
