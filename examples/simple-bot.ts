@@ -5,7 +5,7 @@ const instrument = (process.env.EXNESS_INSTRUMENT ?? 'BTCUSD') as never;
 
 const client = new ExnessClient({
   baseUrl: process.env.EXNESS_BASE_URL ?? 'https://api.exness.com',
-  wsBaseUrl: process.env.EXNESS_WS_BASE_URL ?? 'https://rtapi.prod.env/rtapi/exot/trial3',
+  wsBaseUrl: process.env.EXNESS_WS_BASE_URL,
   auth: {
     type: 'signed',
     apiKey: process.env.EXNESS_API_KEY!,
