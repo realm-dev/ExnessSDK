@@ -41,14 +41,27 @@ export const EMPTY_BODY_HASH = sha256Base64Url('');
 
 export type SignedHeaders = Record<string, string>;
 
+// Server tolerance is asymmetric: even a small future skew is rejected.
+// Bias the client timestamp slightly into the past to avoid false negatives
+// when local clock runs a few hundred milliseconds ahead.
+const TIMESTAMP_SAFETY_MARGIN_MS = 1000;
+
+function fromBase64Url(text: string): string {
+  const padded = text.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(text.length / 4) * 4, '=');
+  return Buffer.from(padded, 'base64').toString('utf8');
+}
+
 export async function buildSignedHeaders(
   config: SignedAuthConfig,
   method: string,           // uppercase: 'GET', 'POST', etc.
   pathWithQuery: string,    // path + query string exactly as transmitted
   body: string,             // JSON-serialized body or '' for GET/no-body
-  idempotencyKey: string    // '' for GET requests
+  idempotencyKey: string,   // '' for GET requests
+  options?: {
+    clockOffsetMs?: number;
+  }
 ): Promise<SignedHeaders> {
-  const timestamp = Date.now();
+  const timestamp = Date.now() + (options?.clockOffsetMs ?? 0) - TIMESTAMP_SAFETY_MARGIN_MS;
   const bodyHash  = body ? sha256Base64Url(body) : EMPTY_BODY_HASH;
 
   const payload = {
@@ -66,6 +79,18 @@ export async function buildSignedHeaders(
   const dataHeader   = toBase64Url(payloadBytes);
   const signature    = await ed.signAsync(payloadBytes, config.privateKey);
   const signHeader   = toBase64Url(signature);
+
+  if (process.env.EXNESS_AUTH_DEBUG === '1') {
+    console.log('[exness-sdk][auth] signed-payload', JSON.stringify({
+      apiKey: config.apiKey,
+      method: method.toUpperCase(),
+      pathWithQuery,
+      idempotencyKey,
+      timestamp,
+      bodyHash,
+      dataPayload: JSON.parse(fromBase64Url(dataHeader)),
+    }));
+  }
 
   return {
     'EXN-API-KEY':         config.apiKey,

@@ -8,9 +8,16 @@ export class ExnessTicksClient extends ExnessWsBase {
   private readonly tickHandlers:  Array<(tick: WSTick) => void> = [];
   private readonly errorHandlers: Array<(e: WsErrorResponse) => void> = [];
   private readonly subscribedInstruments = new Set<InstrumentName>();
+  private subscriptionRequestId: string | null = null;
+  private subscriptionMode: 'legacy' | 'streams' = 'legacy';
 
-  constructor(baseUrl: string, accountId: UInt64String, auth: AuthConfig) {
-    super(baseUrl, `/v1/server-events/accounts/${accountId}/ws/ticks`, auth);
+  constructor(
+    baseUrl: string,
+    accountId: UInt64String,
+    auth: AuthConfig,
+    getClockOffsetMs: () => number = () => 0
+  ) {
+    super(baseUrl, `/v1/server-events/accounts/${accountId}/ws/ticks`, auth, getClockOffsetMs);
   }
 
   on(event: 'tick',  cb: (tick: WSTick) => void): this;
@@ -23,20 +30,30 @@ export class ExnessTicksClient extends ExnessWsBase {
   }
 
   subscribe(requestId: string, instruments: InstrumentName[]): void {
+    this.subscriptionRequestId = requestId;
     for (const i of instruments) this.subscribedInstruments.add(i);
-    this.send({ id: requestId, subscribe: { event: 'ticks', instruments } });
+    if (process.env.EXNESS_WS_DEBUG === '1') {
+      console.log('[exness-sdk][ticks] subscribe', JSON.stringify({ requestId, instruments, mode: this.subscriptionMode }));
+    }
+    this.sendSubscribe(instruments);
   }
 
   protected onConnected(): void {
     if (this.subscribedInstruments.size > 0) {
-      this.send({
-        id: crypto.randomUUID(),
-        subscribe: { event: 'ticks', instruments: [...this.subscribedInstruments] },
-      });
+      if (process.env.EXNESS_WS_DEBUG === '1') {
+        console.log('[exness-sdk][ticks] resubscribe', JSON.stringify({
+          instruments: [...this.subscribedInstruments],
+          mode: this.subscriptionMode,
+        }));
+      }
+      this.sendSubscribe([...this.subscribedInstruments]);
     }
   }
 
   protected onMessage(raw: string): void {
+    if (process.env.EXNESS_WS_DEBUG === '1') {
+      console.log('[exness-sdk][ticks] raw', raw);
+    }
     let msg: WSTick | WsErrorResponse;
     try {
       msg = JSON.parse(raw) as WSTick | WsErrorResponse;
@@ -45,10 +62,48 @@ export class ExnessTicksClient extends ExnessWsBase {
     }
 
     if ('code' in msg) {
+      const normalizedCode = Number(msg.code);
+      if (normalizedCode === 200) {
+        if (process.env.EXNESS_WS_DEBUG === '1') {
+          console.log('[exness-sdk][ticks] ack', JSON.stringify(msg));
+        }
+        return;
+      }
+
+      if (normalizedCode === 3000 && msg.error_message === 'REQUEST_INVALID' && this.subscriptionMode === 'legacy') {
+        this.subscriptionMode = 'streams';
+        if (process.env.EXNESS_WS_DEBUG === '1') {
+          console.log('[exness-sdk][ticks] switching-subscribe-mode', JSON.stringify({
+            nextMode: this.subscriptionMode,
+            instruments: [...this.subscribedInstruments],
+          }));
+        }
+        this.sendSubscribe([...this.subscribedInstruments]);
+      }
       for (const cb of this.errorHandlers) cb(msg as WsErrorResponse);
       return;
     }
 
     for (const cb of this.tickHandlers) cb(msg as WSTick);
+  }
+
+  private sendSubscribe(instruments: InstrumentName[]): void {
+    if (this.subscriptionMode === 'legacy') {
+      this.send({
+        id: this.subscriptionRequestId ?? crypto.randomUUID(),
+        subscribe: { event: 'ticks', instruments },
+      });
+      return;
+    }
+
+    this.send({
+      type: 'subscribe',
+      streams: [
+        {
+          event: 'ticks',
+          instruments,
+        },
+      ],
+    });
   }
 }

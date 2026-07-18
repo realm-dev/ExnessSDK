@@ -14,6 +14,7 @@ type EventHandlers = {
   instrument_event:       Array<(e: WSInstrumentEvent) => void>;
   hmr_snapshot:           Array<(e: WSHmrSnapshotEvent) => void>;
   hmr_update:             Array<(e: WSHmrUpdateEvent) => void>;
+  reconnected:            Array<() => void>;
   error:                  Array<(e: WsErrorResponse) => void>;
 };
 
@@ -31,13 +32,19 @@ export class ExnessEventsClient extends ExnessWsBase {
     instrument_event:       [],
     hmr_snapshot:           [],
     hmr_update:             [],
+    reconnected:            [],
     error:                  [],
   };
 
   private readonly activeSubscriptions = new Map<string, object>();
 
-  constructor(baseUrl: string, accountId: UInt64String, auth: AuthConfig) {
-    super(baseUrl, `/v1/server-events/accounts/${accountId}/ws/events`, auth);
+  constructor(
+    baseUrl: string,
+    accountId: UInt64String,
+    auth: AuthConfig,
+    getClockOffsetMs: () => number = () => 0
+  ) {
+    super(baseUrl, `/v1/server-events/accounts/${accountId}/ws/events`, auth, getClockOffsetMs);
   }
 
   // Typed on() overloads
@@ -47,6 +54,7 @@ export class ExnessEventsClient extends ExnessWsBase {
   on(event: 'instrument_event',       cb: (e: WSInstrumentEvent) => void): this;
   on(event: 'hmr_snapshot',           cb: (e: WSHmrSnapshotEvent) => void): this;
   on(event: 'hmr_update',             cb: (e: WSHmrUpdateEvent) => void): this;
+  on(event: 'reconnected',            cb: () => void): this;
   on(event: 'error',                  cb: (e: WsErrorResponse) => void): this;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   on(event: keyof EventHandlers, cb: (e: any) => void): this {
@@ -94,12 +102,24 @@ export class ExnessEventsClient extends ExnessWsBase {
 
   protected onConnected(): void {
     // Replay all active subscriptions after reconnect
+    if (process.env.EXNESS_WS_DEBUG === '1') {
+      console.log('[exness-sdk][events] resubscribe', JSON.stringify({ subscriptions: [...this.activeSubscriptions.keys()] }));
+    }
     for (const cmd of this.activeSubscriptions.values()) {
       this.send(cmd);
     }
   }
 
+  protected override onReconnected(): void {
+    for (const cb of this.handlers.reconnected) {
+      cb();
+    }
+  }
+
   protected onMessage(raw: string): void {
+    if (process.env.EXNESS_WS_DEBUG === '1') {
+      console.log('[exness-sdk][events] raw', raw);
+    }
     let msg: WSTradingEvent | WsErrorResponse;
     try {
       msg = JSON.parse(raw) as WSTradingEvent | WsErrorResponse;
@@ -107,8 +127,17 @@ export class ExnessEventsClient extends ExnessWsBase {
       return;
     }
 
-    // WS error response has 'code' field, not 'event_type'
+    // WS control acks also come through the `code` field.
+    // Keep code 200 as a non-error acknowledgment, consistent with the ticks client.
     if ('code' in msg) {
+      const normalizedCode = Number(msg.code);
+      if (normalizedCode === 200) {
+        if (process.env.EXNESS_WS_DEBUG === '1') {
+          console.log('[exness-sdk][events] ack', JSON.stringify(msg));
+        }
+        return;
+      }
+
       for (const cb of this.handlers.error) cb(msg as WsErrorResponse);
       return;
     }
