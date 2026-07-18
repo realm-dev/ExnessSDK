@@ -113,7 +113,7 @@ import { ExnessClient } from 'exness-sdk';
 
 const client = new ExnessClient({
   baseUrl: 'https://api.exness.com',
-  wsBaseUrl: 'https://rtapi.prod.env/rtapi/exot/trial3',
+  wsBaseUrl: 'https://ws.api.exness.com',
   auth: {
     type: 'signed',
     apiKey: process.env.EXNESS_API_KEY!,
