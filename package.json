@@ -1,10 +1,13 @@
 {
   "name": "exness-sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Unofficial TypeScript SDK for Exness Public Trader API",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=18.18.0"
+  },
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -14,6 +17,14 @@
   "files": [
     "dist"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/realm-dev/ExnessSDK.git"
+  },
+  "homepage": "https://github.com/realm-dev/ExnessSDK#readme",
+  "bugs": {
+    "url": "https://github.com/realm-dev/ExnessSDK/issues"
+  },
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
@@ -38,5 +49,8 @@
     }
   },
   "keywords": ["exness", "trading", "api", "sdk", "typescript"],
-  "license": "MIT"
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
 }
