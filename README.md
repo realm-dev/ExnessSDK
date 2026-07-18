@@ -1,10 +1,31 @@
 # ExnessSDK
-Non official Exness typescript SDK 
+
+Unofficial TypeScript SDK for the Exness Public Trader API.
 
 ## Installation
 
+Create a project and install the package:
+
 ```bash
-npm install github:realm-dev/ExnessSDK
+npm init -y
+npm install exness-sdk
+```
+
+Or install it into an existing project:
+
+```bash
+npm install exness-sdk
+```
+
+## Environment variables
+
+The examples below use these variables:
+
+```bash
+EXNESS_API_KEY=...
+EXNESS_CLOCK_OFFSET_MS=0
+EXNESS_BASE_URL=https://api.exness.com
+EXNESS_WS_BASE_URL=https://rtapi.prod.env/rtapi/exot/trial3
 ```
 
 ## Usage
@@ -21,6 +42,7 @@ const client = new ExnessClient({
     apiKey: process.env.EXNESS_API_KEY!,
     privateKey: privateKeySeed,
   },
+  clockOffsetMs: Number(process.env.EXNESS_CLOCK_OFFSET_MS ?? '0'),
 });
 
 const accountId = '15000044623' as never;
@@ -43,7 +65,9 @@ Signed auth note:
 - The server timestamp tolerance is effectively asymmetric: requests are accepted only when `0 <= server_now_ms - signed_timestamp_ms <= 3000`.
 - In practice, a client clock that is even slightly ahead of the server can trigger `AUTH_INVALID_API_KEY` with reason `timestamp out of tolerance`.
 - The SDK now keeps a shared `clockOffsetMs` in sync from HTTP `Date` response headers and reuses it for both REST and WS handshakes.
-- If you still need a manual fallback, you can pass `clockOffsetMs` in the client config to bias all signed requests and WS handshakes.
+- If you want to set it explicitly, pass `clockOffsetMs` in the client config to bias all signed requests and WS handshakes.
+- To obtain a good value once, create the client without `clockOffsetMs`, make one signed REST call, and then read `client.getClockOffsetMs()`.
+- You can persist that value and feed it back through `clockOffsetMs` on the next start.
 - The SDK still applies a small safety margin into the past on top of that offset.
 
 Trading price formatting note:
@@ -83,6 +107,76 @@ await ticks.connect();
 ticks.subscribe('ticks-1', ['BTCUSD']);
 ```
 
+### Minimal bot example
+
+```ts
+import { ExnessClient } from 'exness-sdk';
+
+const client = new ExnessClient({
+  baseUrl: 'https://api.exness.com',
+  wsBaseUrl: 'https://rtapi.prod.env/rtapi/exot/trial3',
+  auth: {
+    type: 'signed',
+    apiKey: process.env.EXNESS_API_KEY!,
+    privateKey: privateKeySeed,
+  },
+  clockOffsetMs: Number(process.env.EXNESS_CLOCK_OFFSET_MS ?? '0'),
+});
+
+const accountId = '15000044623' as never;
+const instrument = 'BTCUSD' as never;
+
+// REST: load instrument settings before trading.
+const instrumentCondition = await client.configuration.getInstrumentCondition(accountId, instrument);
+console.log('[bot] instrument condition', instrumentCondition);
+
+// REST: place a simple market order.
+const marketAck = await client.trading.openPosition(
+  accountId,
+  {
+    instrument,
+    side: 'buy',
+    volume: '0.01',
+    comment: 'README example market order',
+  },
+  'market-open-1'
+);
+console.log('[bot] market order ack', marketAck);
+
+// WS: subscribe to transactions and quotes.
+const events = client.createEventsClient(accountId);
+const ticks = client.createTicksClient(accountId);
+
+events.on('transaction_event', (event) => {
+  console.log('[bot] transaction', event);
+});
+
+events.on('trading_state_snapshot', (event) => {
+  console.log('[bot] state snapshot', event);
+});
+
+events.on('error', (event) => {
+  console.error('[bot] events error', event);
+});
+
+ticks.on('tick', (tick) => {
+  console.log('[bot] tick', tick);
+});
+
+ticks.on('error', (event) => {
+  console.error('[bot] ticks error', event);
+});
+
+await events.connect();
+await ticks.connect();
+
+events.subscribeTransactions('transactions-1');
+events.subscribeInstruments('instruments-1', [instrument]);
+ticks.subscribe('ticks-1', [instrument]);
+```
+
+You can also keep this example in a file such as [`ExnessSDK/examples/simple-bot.ts`](./examples/simple-bot.ts) and use [`ExnessSDK/examples/.env.example`](./examples/.env.example) as a starting point for local configuration.
+
 ## WebSocket Notes
 
 - `baseUrl` is used for REST requests.
@@ -105,6 +199,32 @@ ticks.subscribe('ticks-1', ['BTCUSD']);
 - A `{"id":"...","code":200}` WebSocket message is treated as a subscribe ACK, not as an error.
 - Some internal WS hosts may present a self-signed certificate chain. The current SDK disables TLS verification for WS connections as a diagnostic workaround; replace this with a proper CA configuration for production use.
 
-```typescript
-import { ExnessSDK } from 'exness-sdk';
+### Market order example
+
+If you only need the trading call, this is the minimal version:
+
+```ts
+import { ExnessClient } from 'exness-sdk';
+
+const client = new ExnessClient({
+  baseUrl: process.env.EXNESS_BASE_URL ?? 'https://api.exness.com',
+  auth: {
+    type: 'signed',
+    apiKey: process.env.EXNESS_API_KEY!,
+    privateKey: privateKeySeed,
+  },
+  clockOffsetMs: Number(process.env.EXNESS_CLOCK_OFFSET_MS ?? '0'),
+});
+
+const ack = await client.trading.openPosition(
+  '15000044623' as never,
+  {
+    instrument: 'BTCUSD' as never,
+    side: 'buy',
+    volume: '0.01',
+  },
+  'open-market-1'
+);
+
+console.log(ack);
 ```

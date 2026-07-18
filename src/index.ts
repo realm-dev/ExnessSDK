@@ -24,6 +24,10 @@ export class ExnessClient {
     this.configuration = new ConfigurationApi(this.http);
   }
 
+  getClockOffsetMs(): number {
+    return this.http.getClockOffsetMs();
+  }
+
   createEventsClient(accountId: UInt64String): ExnessEventsClient {
     return new ExnessEventsClient(
       this.config.wsBaseUrl ?? this.config.baseUrl,
