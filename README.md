@@ -25,7 +25,7 @@ The examples below use these variables:
 EXNESS_API_KEY=...
 EXNESS_CLOCK_OFFSET_MS=0
 EXNESS_BASE_URL=https://api.exness.com
-EXNESS_WS_BASE_URL=https://rtapi.prod.env/rtapi/exot/trial3
+EXNESS_WS_BASE_URL=your_websocket_base_url
 ```
 
 ## Usage
