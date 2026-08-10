@@ -4,7 +4,7 @@ import type {
   AccountDetailsResponse,
   InstrumentConditionResponse,
   InstrumentNameListResponse,
-  RateLimitsResponse,
+  LimitsResponse,
 } from '../types/responses.js';
 
 export class ConfigurationApi {
@@ -35,9 +35,13 @@ export class ConfigurationApi {
     );
   }
 
-  getRateLimits(accountId: UInt64String): Promise<RateLimitsResponse> {
+  getLimits(accountId: UInt64String): Promise<LimitsResponse> {
     return this.http.request('GET',
-      `/v1/configuration/accounts/${accountId}/rate-limits`
+      `/v1/configuration/accounts/${accountId}/limits`
     );
+  }
+
+  getRateLimits(accountId: UInt64String): Promise<LimitsResponse> {
+    return this.getLimits(accountId);
   }
 }

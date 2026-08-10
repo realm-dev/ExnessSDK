@@ -1,7 +1,8 @@
 import type { InstrumentName, UInt64String } from './common.js';
 import type {
   AccountSettings, Candle, CandleBidAsk, Deal, InstrumentCondition,
-  MethodRateLimit, Order, Position, AccountState, TransactionAccountState,
+  Order, Position, AccountState, TransactionAccountState,
+  RestLimits, WebSocketLimits,
 } from './models.js';
 import type { OperationStatus } from './enums.js';
 
@@ -79,6 +80,9 @@ export interface InstrumentNameListResponse {
   instruments?: InstrumentName[];
 }
 
-export interface RateLimitsResponse {
-  methods?: MethodRateLimit[];
+export interface LimitsResponse {
+  limits: {
+    rest: RestLimits;
+    websocket: WebSocketLimits;
+  };
 }

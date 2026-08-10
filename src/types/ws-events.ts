@@ -13,7 +13,7 @@ export interface WSTradingStateSnapshotEvent {
 
 export interface WSTradingTransactionEvent {
   event_type:          'transaction_event';
-  id:                  string;
+  id?:                 string;
   payload:             TransactionPayload;
   status?:             TradingEventStatus;
   operation_id?:       UInt64String;
@@ -26,7 +26,7 @@ export interface WSTradingTransactionEvent {
 
 export interface WSAccountStateEvent {
   event_type:  'account_state_event';
-  id:          string;
+  id?:         string;
   event_time:  string;
   payload: {
     account_state: import('./models.js').AccountState;
@@ -35,7 +35,7 @@ export interface WSAccountStateEvent {
 
 export interface WSInstrumentEvent {
   event_type: 'instrument_event';
-  id:         string;
+  id?:        string;
   event_time: string;
   action:     InstrumentEventAction;
   payload:    InstrumentCondition;

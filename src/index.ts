@@ -58,7 +58,10 @@ export type {
   Order, Position, Deal, AccountState, TransactionAccountState,
   Candle, CandleBidAsk, CandleSide, WSTick,
   InstrumentCondition, AccountSettings, HmrPeriod,
-  TransactionPayload, MethodRateLimit,
+  TransactionPayload, GlobalRestRateLimit, OperationRequestLimits,
+  RestMethodLimits, RestLimits, WebSocketTokenBucketLimit,
+  WebSocketStrikeLimits, WebSocketGlobalAccountLimits,
+  WebSocketEndpointLimits, WebSocketLimits,
 } from './types/models.js';
 export type {
   OpenPositionRequest, ClosePositionParams, CloseAllPositionsParams,
@@ -70,7 +73,7 @@ export type {
   AckResponse, TradingStateSnapshot, OperationStatusResponse,
   CandleHistoryResponse, OrdersHistoryResponse, DealsHistoryResponse,
   AccountDetailsResponse, InstrumentConditionResponse,
-  InstrumentNameListResponse, RateLimitsResponse,
+  InstrumentNameListResponse, LimitsResponse,
 } from './types/responses.js';
 export type {
   WSTradingEvent, WSTradingStateSnapshotEvent, WSTradingTransactionEvent,

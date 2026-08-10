@@ -11,6 +11,21 @@ npm init -y
 npm install exness-sdk
 ```
 
+## Current Scope
+
+This SDK currently covers the main Public Trader API workflows:
+- signed REST requests
+- trading access point discovery
+- trading REST methods
+- configuration REST methods
+- history REST methods
+- WebSocket ticks and trading events
+- API limits via `configuration.getLimits(accountId)`
+
+Compatibility note:
+- the SDK now uses the current `limits` endpoint
+- `configuration.getRateLimits(accountId)` is still available as a compatibility alias and returns the same payload as `getLimits(accountId)`
+
 Or install it into an existing project:
 
 ```bash
@@ -59,6 +74,9 @@ const tradingClient = new ExnessClient({
 
 const instruments = await tradingClient.configuration.getAvailableInstrumentList(accountId);
 console.log(instruments);
+
+const limits = await client.configuration.getLimits(accountId);
+console.log(limits);
 ```
 
 Signed auth note:
@@ -197,6 +215,15 @@ You can also keep this example in a file such as [`ExnessSDK/examples/simple-bot
 
 - A `{"id":"...","code":200}` WebSocket message is treated as a subscribe ACK, not as an error.
 - Some internal WS hosts may present a self-signed certificate chain. The current SDK disables TLS verification for WS connections as a diagnostic workaround; replace this with a proper CA configuration for production use.
+
+## Release Notes
+
+### 0.2.0
+
+- aligned configuration limits with the current `/v1/configuration/accounts/{account_id}/limits` endpoint
+- added `configuration.getLimits(accountId)`
+- kept `configuration.getRateLimits(accountId)` as a compatibility alias
+- updated WebSocket event typing so some event `id` fields are no longer treated as always required
 
 ### Market order example
 

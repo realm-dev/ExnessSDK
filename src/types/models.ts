@@ -165,11 +165,57 @@ export interface HmrPeriod {
   end_time:    string;
 }
 
-// ------------------------------------------------------------------ Rate limits
+// ------------------------------------------------------------------ API limits
 
-export interface MethodRateLimit {
-  method?:              string;
-  requests_per_minute?: number;
+export interface GlobalRestRateLimit {
+  requests_per_minute: number;
+}
+
+export interface OperationRequestLimits {
+  max_limit?: number;
+  max_history_age?: string;
+  max_time_range?: string;
+  max_candles?: number;
+}
+
+export interface RestMethodLimits {
+  rate: GlobalRestRateLimit;
+  request?: OperationRequestLimits;
+}
+
+export interface RestLimits {
+  global_account_rate: GlobalRestRateLimit;
+  methods: Record<string, RestMethodLimits>;
+}
+
+export interface WebSocketTokenBucketLimit {
+  burst: number;
+  rate_per_minute: number;
+}
+
+export interface WebSocketStrikeLimits {
+  disconnect_threshold: number;
+  window_minutes: number;
+}
+
+export interface WebSocketGlobalAccountLimits {
+  total_connections: number;
+  auth_failures: WebSocketTokenBucketLimit;
+}
+
+export interface WebSocketEndpointLimits {
+  api_operation_id: string;
+  http_method: string;
+  path: string;
+  connection_rate: WebSocketTokenBucketLimit;
+  inbound_message_rate: WebSocketTokenBucketLimit;
+  subscription_operation_rate: Record<string, WebSocketTokenBucketLimit>;
+  strikes?: WebSocketStrikeLimits;
+}
+
+export interface WebSocketLimits {
+  global_account_limits: WebSocketGlobalAccountLimits;
+  endpoints: Record<string, WebSocketEndpointLimits>;
 }
 
 // ------------------------------------------------------------------ Transaction payload
@@ -180,4 +226,3 @@ export interface TransactionPayload {
   deals?:         Deal[];
   account_state?: TransactionAccountState;
 }
-
