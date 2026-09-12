@@ -1,5 +1,5 @@
 import { buildSignedHeaders, type AuthConfig } from '../auth/signer.js';
-import { ExnessApiError, type ErrorResponse } from '../types/errors.js';
+import { ErrorCode, ExnessApiError, type ErrorResponse } from '../types/errors.js';
 
 export interface ExnessClientConfig {
   baseUrl: string;
@@ -124,9 +124,11 @@ export class ExnessHttpClient {
         const shouldRetry = this.config.auth.type === 'signed'
           && attempt === 0
           && (
-            errorBody.code === 1000
+            errorBody.code === ErrorCode.AUTH_INVALID_API_KEY
+            || errorBody.code === ErrorCode.AUTH_INVALID_SIGNATURE
             || /timestamp out of tolerance/i.test(errorBody.error_message)
             || /AUTH_INVALID_API_KEY/i.test(errorBody.error_message)
+            || /AUTH_INVALID_SIGNATURE/i.test(errorBody.error_message)
           );
 
         if (shouldRetry) {
