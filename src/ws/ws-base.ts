@@ -19,7 +19,13 @@ export abstract class ExnessWsBase {
 
   async connect(): Promise<void> {
     this.shouldReconnect = true;
-    await this.openConnection();
+    try {
+      await this.openConnection();
+    } catch (err) {
+      this.cleanupSocket();
+      this.scheduleReconnect('initial-open-failed');
+      throw err;
+    }
   }
 
   disconnect(): void {
@@ -28,10 +34,7 @@ export abstract class ExnessWsBase {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
+    this.cleanupSocket();
   }
 
   protected send(payload: object): void {
@@ -75,6 +78,7 @@ export abstract class ExnessWsBase {
       this.reconnectAttempt = nextAttempt;
 
       void this.openConnection().catch((err) => {
+        this.cleanupSocket();
         console.error(`[${logPrefix}-reconnect-failed]`, JSON.stringify({
           wsPath: this.wsPath,
           attempt: this.reconnectAttempt,
@@ -83,6 +87,19 @@ export abstract class ExnessWsBase {
         this.scheduleReconnect('open-failed');
       });
     }, RECONNECT_DELAY_MS);
+  }
+
+  private cleanupSocket(): void {
+    if (!this.ws) {
+      return;
+    }
+
+    const socket = this.ws;
+    this.ws = null;
+    socket.removeAllListeners();
+    if (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN) {
+      socket.terminate();
+    }
   }
 
   private async openConnection(): Promise<void> {
@@ -114,6 +131,7 @@ export abstract class ExnessWsBase {
         headers,
       }));
     }
+    console.log(`[${logPrefix}-connecting]`, JSON.stringify({ wsUrl, wsPath: this.wsPath }));
 
     this.ws = new WebSocket(wsUrl, 'exness-ws-protocol', {
       headers,
@@ -174,7 +192,12 @@ export abstract class ExnessWsBase {
       });
 
       this.ws!.once('error', (err) => {
-        console.error(`[${logPrefix}-error]`, err instanceof Error ? err.message : String(err));
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        console.error(`[${logPrefix}-error]`, JSON.stringify({
+          wsUrl,
+          wsPath: this.wsPath,
+          error: errorMessage,
+        }));
         if (process.env.EXNESS_WS_DEBUG === '1') {
           console.log('[exness-sdk][ws] error', err);
         }
