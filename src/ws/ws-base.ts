@@ -97,6 +97,9 @@ export abstract class ExnessWsBase {
     const socket = this.ws;
     this.ws = null;
     socket.removeAllListeners();
+    socket.on('error', () => {
+      // ws emits an error when a CONNECTING socket is terminated.
+    });
     if (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN) {
       socket.terminate();
     }

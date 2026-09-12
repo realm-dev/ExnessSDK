@@ -1,6 +1,6 @@
 {
   "name": "exness-sdk",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Unofficial TypeScript SDK for Exness Public Trader API",
   "type": "module",
   "main": "./dist/index.js",
